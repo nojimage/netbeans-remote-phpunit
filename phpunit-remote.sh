@@ -9,15 +9,12 @@
 #echo "run: $7"
 #echo "filter: $8 $9"
 
-#
-# Change these settings to your env
-#
-REMOTE_PKEY=~/.vagrant.d/insecure_private_key
+REMOTE_PKEY=~/.ssh/id_rsa
 REMOTE_SERVER=vagrant@192.168.33.10
-REMOTE_ROOT='/var/www/vhosts/example.com/htdocs'
-REMOTE_PHPUNIT='/var/www/vhosts/example.com/htdocs/vendor/bin/phpunit'
+REMOTE_ROOT="/var/www/vhosts/example.com/htdocs"
+REMOTE_PHPUNIT="${REMOTE_ROOT}/vendor/bin/phpunit"
+REMOTE_SUITE_PATH="${REMOTE_ROOT}/tests"
 
-###
 LOCAL_ROOT=$(cd ../; pwd)
 
 REMOTE_BOOTSTRAP=$5
@@ -30,22 +27,28 @@ REMOTE_RUN=${REMOTE_ROOT}${REMOTE_RUN/$LOCAL_ROOT/}
 REMOTE_JUNITLOG=$3
 REMOTE_JUNITLOG=${REMOTE_JUNITLOG/\/var\//\/tmp\/}
 
+REMOTE_SUITE=${REMOTE_SUITE_PATH}/${6##*/}
+
 # Debug output
 #echo $REMOTE_BOOTSTRAP
 #echo $REMOTE_RUN
 #echo $REMOTE_JUNITLOG
+#echo $REMOTE_SUITE
+
+# Copy suite file
+scp -i $REMOTE_PKEY "$6" $REMOTE_SERVER:$REMOTE_SUITE
 
 # rsync
 #vagrant rsync
 
 # Connect to your vagrant VM, cd to your test location and run phpunit with appropriate args
-if [ $8 = "--filter" ]
+if [[ $8 = "--filter" ]]
 then
 	#"rerun failed"
-	ssh -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_RUN --filter \"$9\""
+	ssh -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_SUITE --run=$REMOTE_RUN --filter \"$9\""
 else
 	#"(re)run [all] tests"
-	ssh -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_RUN"
+	ssh -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_SUITE --run=$REMOTE_RUN"
 fi
 
 # Copy the test output back to your local machine, where NetBeans expects to find it
