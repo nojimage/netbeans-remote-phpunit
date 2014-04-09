@@ -9,13 +9,18 @@
 #echo "run: $7"
 #echo "filter: $8 $9"
 
-REMOTE_PKEY=~/.ssh/id_rsa
+#
+# Change these settings to your env
+#
+REMOTE_PKEY=~/.vagrant.d/insecure_private_key
 REMOTE_SERVER=vagrant@192.168.33.10
 REMOTE_ROOT="/var/www/vhosts/example.com/htdocs"
 REMOTE_PHPUNIT="${REMOTE_ROOT}/vendor/bin/phpunit"
 REMOTE_SUITE_PATH="${REMOTE_ROOT}/tests"
 
-LOCAL_ROOT=$(cd ../; pwd)
+###
+LOCAL_ROOT=$(dirname "$(dirname "$0")")
+LOCAL_SUITE=$6
 
 REMOTE_BOOTSTRAP=$5
 REMOTE_BOOTSTRAP=${REMOTE_ROOT}${REMOTE_BOOTSTRAP/$LOCAL_ROOT/}
@@ -27,7 +32,7 @@ REMOTE_RUN=${REMOTE_ROOT}${REMOTE_RUN/$LOCAL_ROOT/}
 REMOTE_JUNITLOG=$3
 REMOTE_JUNITLOG=${REMOTE_JUNITLOG/\/var\//\/tmp\/}
 
-REMOTE_SUITE=${REMOTE_SUITE_PATH}/${6##*/}
+REMOTE_SUITE=${REMOTE_SUITE_PATH}/${LOCAL_SUITE##*/}
 
 # Debug output
 #echo $REMOTE_BOOTSTRAP
