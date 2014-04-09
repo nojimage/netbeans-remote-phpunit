@@ -1,17 +1,53 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
 #echo $@ #uncomment to debug
+#echo $1 $2 $3 $4 $5 $6 $7 $8 $9
+#echo "colors: $1"
+#echo "log-junit: $2 $3"
+#echo "bootstrap: $4 $5"
+#echo "suite: $6"
+#echo "run: $7"
+#echo "filter: $8 $9"
 
-REMOTE_SERVER=user@virtualhost
-REMOTE_PATH_TO_TESTS='/path/to/tests'
+#
+# Change these settings to your env
+#
+REMOTE_PKEY=~/.vagrant.d/insecure_private_key
+REMOTE_SERVER=vagrant@192.168.33.10
+REMOTE_ROOT='/var/www/vhosts/example.com/htdocs'
+REMOTE_PHPUNIT='/var/www/vhosts/example.com/htdocs/vendor/bin/phpunit'
 
-# The very last argument is the path to the test(s) you want run
-export TEST=$9
+###
+LOCAL_ROOT=$(cd ../; pwd)
 
-# Chop off everything up to "tests" in that path. "tests" is just an example path
-TEST=${TEST##r*tests}
+REMOTE_BOOTSTRAP=$5
+REMOTE_BOOTSTRAP=${REMOTE_ROOT}${REMOTE_BOOTSTRAP/$LOCAL_ROOT/}
 
-# Connect to your VM, cd to your test location and run phpunit with most of the args
-ssh $REMOTE_SERVER "cd $REMOTE_PATH_TO_TESTS; phpunit $1 $2 $3 $REMOTE_PATH_TO_TESTS/bootstrap.php $REMOTE_PATH_TO_TESTS/$TEST"
+REMOTE_RUN=$7
+REMOTE_RUN=${REMOTE_RUN/--run=/}
+REMOTE_RUN=${REMOTE_ROOT}${REMOTE_RUN/$LOCAL_ROOT/}
+
+REMOTE_JUNITLOG=$3
+REMOTE_JUNITLOG=${REMOTE_JUNITLOG/\/var\//\/tmp\/}
+
+# Debug output
+#echo $REMOTE_BOOTSTRAP
+#echo $REMOTE_RUN
+#echo $REMOTE_JUNITLOG
+
+# rsync
+#vagrant rsync
+
+# Connect to your vagrant VM, cd to your test location and run phpunit with appropriate args
+if [ $8 = "--filter" ]
+then
+	#"rerun failed"
+	ssh -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_RUN --filter \"$9\""
+else
+	#"(re)run [all] tests"
+	ssh -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_RUN"
+fi
 
 # Copy the test output back to your local machine, where NetBeans expects to find it
-scp $REMOTE_SERVER:$2 $2
+# might not work on mac. definitely won't work on win!
+scp -i $REMOTE_PKEY $REMOTE_SERVER:$REMOTE_JUNITLOG $3
