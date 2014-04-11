@@ -40,6 +40,9 @@ REMOTE_SUITE=${REMOTE_SUITE_PATH}/${LOCAL_SUITE##*/}
 #echo $REMOTE_JUNITLOG
 #echo $REMOTE_SUITE
 
+# Remove logfile
+ssh -i $REMOTE_PKEY $REMOTE_SERVER "if [ -f $REMOTE_JUNITLOG ] ; then rm $REMOTE_JUNITLOG; fi"
+
 # Copy suite file
 scp -i $REMOTE_PKEY "$6" $REMOTE_SERVER:$REMOTE_SUITE
 
