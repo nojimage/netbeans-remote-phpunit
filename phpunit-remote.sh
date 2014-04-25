@@ -17,6 +17,7 @@ REMOTE_SERVER=vagrant@192.168.33.10
 REMOTE_ROOT="/var/www/vhosts/example.com/htdocs"
 REMOTE_PHPUNIT="${REMOTE_ROOT}/vendor/bin/phpunit"
 REMOTE_SUITE_PATH="${REMOTE_ROOT}/tests"
+XDEBUG_CONFIG="idekey=netbeans-xdebug"
 
 ###
 LOCAL_ROOT=$(dirname "$(dirname "$0")")
@@ -53,10 +54,10 @@ scp -i $REMOTE_PKEY "$6" $REMOTE_SERVER:$REMOTE_SUITE
 if [[ $8 = "--filter" ]]
 then
 	#"rerun failed"
-	ssh -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_SUITE --run=$REMOTE_RUN --filter \"$9\""
+	ssh -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_SUITE --run=$REMOTE_RUN --filter \"$9\""
 else
 	#"(re)run [all] tests"
-	ssh -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_SUITE --run=$REMOTE_RUN"
+	ssh -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_SUITE --run=$REMOTE_RUN"
 fi
 
 # Copy the test output back to your local machine, where NetBeans expects to find it
