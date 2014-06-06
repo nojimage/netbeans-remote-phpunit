@@ -84,17 +84,17 @@ scp -q -i $REMOTE_PKEY "$LOCAL_SUITE" $REMOTE_SERVER:$REMOTE_SUITE
 
 # Connect to your vagrant VM, cd to your test location and run phpunit with appropriate args
 if [[ $6 = "--coverage-clover" && $8 = "--filter" ]] ; then
-	# rerun failed and with coverage
-	ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP --coverage-clover $REMOTE_CLOVERLOG --filter \"$9\" $REMOTE_SUITE --run=$REMOTE_RUN"
+  # rerun failed and with coverage
+  ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP --coverage-clover $REMOTE_CLOVERLOG --filter \"$9\" $REMOTE_SUITE --run=$REMOTE_RUN"
 elif [[ $6 = "--coverage-clover" ]] ; then
-	# with coverage
-	ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP --coverage-clover $REMOTE_CLOVERLOG $REMOTE_SUITE --run=$REMOTE_RUN"
+  # with coverage
+  ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP --coverage-clover $REMOTE_CLOVERLOG $REMOTE_SUITE --run=$REMOTE_RUN"
 elif [[ $6 = "--filter" ]] ; then
-	# rerun failed
-	ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP --filter \"$7\" $REMOTE_SUITE --run=$REMOTE_RUN"
+  # rerun failed
+  ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP --filter \"$7\" $REMOTE_SUITE --run=$REMOTE_RUN"
 else
-	# (re)run [all] tests 
-	ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_SUITE --run=$REMOTE_RUN"
+  # (re)run [all] tests 
+  ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_SUITE --run=$REMOTE_RUN"
 fi
 
 # Copy the test output back to your local machine, where NetBeans expects to find it
