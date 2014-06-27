@@ -3,27 +3,6 @@
 # Custom PHPUnit script for Remote test on NetBaeans 8.0
 ##
 
-#echo $@ #uncomment to debug
-#echo "colors: $1"
-#echo "log-junit: $2 $3"
-#echo "bootstrap: $4 $5"
-## and
-#echo "suite: $6"
-#echo "run: $7"
-## or
-#echo "filter: $6 $7"
-#echo "suite: $8"
-#echo "run: $9"
-## or
-#echo "coverage-clover: $6 $7"
-#echo "suite: $8"
-#echo "run: $9"
-## or
-#echo "coverage-clover: $6 $7"
-#echo "filter: $8 $9"
-#echo "suite: ${10}"
-#echo "run: ${11}"
-
 #
 # Change these settings to your env
 #
@@ -36,74 +15,104 @@ XDEBUG_CONFIG="idekey=netbeans-xdebug"
 
 ###
 LOCAL_ROOT=$(cd "$(dirname "$(dirname "$0")")" && pwd)
-echo $LOCAL_ROOT
-if [[ $6 = "--coverage-clover" && $8 = "--filter" ]] ; then
-  LOCAL_SUITE=${10}
-  REMOTE_RUN=${11}
-elif [[ $6 = "--filter" ||  $6 = "--coverage-clover" ]] ; then
-  LOCAL_SUITE=$8
-  REMOTE_RUN=$9
-else
-  LOCAL_SUITE=$6
-  REMOTE_RUN=$7
-fi
 
-REMOTE_BOOTSTRAP=$5
-REMOTE_BOOTSTRAP=${REMOTE_ROOT}${REMOTE_BOOTSTRAP/$LOCAL_ROOT/}
+#echo $LOCAL_ROOT
 
-REMOTE_RUN=${REMOTE_RUN/--run=/}
-REMOTE_RUN=${REMOTE_ROOT}${REMOTE_RUN/$LOCAL_ROOT/}
+## parse options
+while [[ $# > 2 ]] ; do
+  #echo ">> ${1} ${2}"
+  case $1 in
+    '--colors' )
+      COLORS=1
+      ;;
+    '--log-junit' )
+      JUNITLOG="$2"
+      shift
+      ;;
+    '--bootstrap' )
+      BOOTSTRAP="$2"
+      shift
+      ;;
+    '--filter' )
+      FILTER="$2"
+      shift
+      ;;
+    '--coverage-clover' )
+      COVERAGE="$2"
+      shift
+      ;;
+  esac
 
-REMOTE_JUNITLOG=$3
-REMOTE_JUNITLOG=${REMOTE_JUNITLOG/\/var\//\/tmp\/}
+  shift
+done
 
-if [[ $6 = "--coverage-clover" ]] ; then
-  REMOTE_CLOVERLOG=$7
-  REMOTE_CLOVERLOG=${REMOTE_CLOVERLOG/\/var\//\/tmp\/}
-fi
+SUITE=$1
+RUN=$2
+RUN=${RUN/--run=/}
 
-REMOTE_SUITE=${REMOTE_SUITE_PATH}/${LOCAL_SUITE##*/}
+REMOTE_BOOTSTRAP=${REMOTE_ROOT}${BOOTSTRAP/$LOCAL_ROOT/}
+REMOTE_JUNITLOG=${JUNITLOG/\/var\//\/tmp\/}
+REMOTE_CLOVERLOG=${CLOVERLOG/\/var\//\/tmp\/}
+REMOTE_SUITE=${REMOTE_SUITE_PATH}/${SUITE##*/}
+REMOTE_FILTER=${FILTER}
+REMOTE_RUN=${REMOTE_ROOT}${RUN/$LOCAL_ROOT/}
 
 # Debug output
+#echo $COLORS
 #echo $REMOTE_BOOTSTRAP
-#echo $REMOTE_RUN
 #echo $REMOTE_JUNITLOG
+#echo $REMOTE_FILTER
+#echo $REMOTE_CLOVERLOG
 #echo $REMOTE_SUITE
+#echo $REMOTE_RUN
 
 # Remove logfile
 ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "if [ -f $REMOTE_JUNITLOG ] ; then rm $REMOTE_JUNITLOG; fi"
-if [[ $6 = "--coverage-clover" ]] ; then
+if [[ -n "$COVERAGE" ]] ; then
   ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "if [ -f $REMOTE_CLOVERLOG ] ; then rm $REMOTE_CLOVERLOG; fi"
 fi
 
 # Copy suite file
-scp -q -i $REMOTE_PKEY "$LOCAL_SUITE" $REMOTE_SERVER:$REMOTE_SUITE
+scp -q -i $REMOTE_PKEY "$SUITE" $REMOTE_SERVER:$REMOTE_SUITE
 
 # rsync
 #vagrant rsync
 
-# Connect to your vagrant VM, cd to your test location and run phpunit with appropriate args
-if [[ $6 = "--coverage-clover" && $8 = "--filter" ]] ; then
-  # rerun failed and with coverage
-  ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP --coverage-clover $REMOTE_CLOVERLOG --filter \"$9\" $REMOTE_SUITE --run=$REMOTE_RUN"
-elif [[ $6 = "--coverage-clover" ]] ; then
-  # with coverage
-  ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP --coverage-clover $REMOTE_CLOVERLOG $REMOTE_SUITE --run=$REMOTE_RUN"
-elif [[ $6 = "--filter" ]] ; then
-  # rerun failed
-  ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP --filter \"$7\" $REMOTE_SUITE --run=$REMOTE_RUN"
-else
-  # (re)run [all] tests 
-  ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "cd $REMOTE_ROOT; XDEBUG_CONFIG=$XDEBUG_CONFIG $REMOTE_PHPUNIT $1 $2 $REMOTE_JUNITLOG --bootstrap $REMOTE_BOOTSTRAP $REMOTE_SUITE --run=$REMOTE_RUN"
+## Build test command
+COMMAND="cd $REMOTE_ROOT; XDEBUG_CONFIG=${XDEBUG_CONFIG} $REMOTE_PHPUNIT"
+
+if [[ -n "$COLORS" ]] ; then
+  COMMAND="${COMMAND} --colors"
 fi
+
+if [[ -n "$JUNITLOG" ]] ; then
+  COMMAND="${COMMAND} --log-junit ${REMOTE_JUNITLOG}"
+fi
+
+if [[ -n "$BOOTSTRAP" ]] ; then
+  COMMAND="${COMMAND} --bootstrap ${REMOTE_BOOTSTRAP}"
+fi
+
+if [[ -n "$FILTER" ]] ; then
+  COMMAND="${COMMAND} --filter '${REMOTE_FILTER}'"
+fi
+
+if [[ -n "$COVERAGE" ]] ; then
+  COMMAND="${COMMAND} --coverage-clover ${REMOTE_COVERAGE}"
+fi
+
+COMMAND="${COMMAND} $REMOTE_SUITE --run=${REMOTE_RUN}"
+
+## Execute
+#echo $COMMAND
+ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "$COMMAND"
 
 # Copy the test output back to your local machine, where NetBeans expects to find it
 # might not work on mac. definitely won't work on win!
-scp -q -i $REMOTE_PKEY $REMOTE_SERVER:$REMOTE_JUNITLOG "$3.tmp"
-sed -e "s~$REMOTE_ROOT~$LOCAL_ROOT~g" "$3.tmp" > $3
+scp -q -i $REMOTE_PKEY $REMOTE_SERVER:$REMOTE_JUNITLOG "$JUNITLOG.tmp"
+sed -e "s~$REMOTE_ROOT~$LOCAL_ROOT~g" "$JUNITLOG.tmp" > $JUNITLOG
 
-if [[ $6 = "--coverage-clover" ]] ; then
-  scp -q -i $REMOTE_PKEY $REMOTE_SERVER:"$REMOTE_CLOVERLOG" "$7.tmp"
-  sed -e "s~$REMOTE_ROOT~$LOCAL_ROOT~g" "$7.tmp" > $7
+if [[ -n "$COVERAGE" ]] ; then
+  scp -q -i $REMOTE_PKEY $REMOTE_SERVER:"$REMOTE_CLOVERLOG" "$COVERAGE.tmp"
+  sed -e "s~$REMOTE_ROOT~$LOCAL_ROOT~g" "$COVERAGE.tmp" > $COVERAGE
 fi
-
