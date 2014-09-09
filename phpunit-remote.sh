@@ -19,7 +19,7 @@ LOCAL_ROOT=$(cd "$(dirname "$(dirname "$0")")" && pwd)
 #echo $LOCAL_ROOT
 
 ## parse options
-while [[ $# > 2 ]] ; do
+while [[ $# -gt 2 ]] ; do
   #echo ">> ${1} ${2}"
   case $1 in
     '--colors' )
