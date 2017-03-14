@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ##
-# Custom PHPUnit script for Remote test on NetBaeans 8.0
+# Custom PHPUnit script for Remote test on NetBaeans 8.2
 ##
 
 #
@@ -29,6 +29,10 @@ while [[ $# -gt 2 ]] ; do
       JUNITLOG="$2"
       shift
       ;;
+    '--log-json' )
+      JSONLOG="$2"
+      shift
+      ;;
     '--bootstrap' )
       BOOTSTRAP="$2"
       shift
@@ -52,6 +56,7 @@ RUN=${RUN/--run=/}
 
 REMOTE_BOOTSTRAP=${REMOTE_ROOT}${BOOTSTRAP/$LOCAL_ROOT/}
 REMOTE_JUNITLOG=${JUNITLOG/\/var\//\/tmp\/}
+REMOTE_JSONLOG=${JSONLOG/\/var\//\/tmp\/}
 REMOTE_CLOVERLOG=${CLOVERLOG/\/var\//\/tmp\/}
 REMOTE_SUITE=${REMOTE_SUITE_PATH}/${SUITE##*/}
 REMOTE_FILTER=${FILTER}
@@ -61,13 +66,19 @@ REMOTE_RUN=${RUN//$LOCAL_ROOT/$REMOTE_ROOT}
 #echo $COLORS
 #echo $REMOTE_BOOTSTRAP
 #echo $REMOTE_JUNITLOG
+#echo $REMOTE_JSONLOG
 #echo $REMOTE_FILTER
 #echo $REMOTE_CLOVERLOG
 #echo $REMOTE_SUITE
 #echo $REMOTE_RUN
 
 # Remove logfile
-ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "if [ -f $REMOTE_JUNITLOG ] ; then rm $REMOTE_JUNITLOG; fi"
+if [[ -n "$JUNITLOG" ]] ; then
+  ssh -q -i "$REMOTE_PKEY" $REMOTE_SERVER "if [ -f $REMOTE_JUNITLOG ] ; then rm $REMOTE_JUNITLOG; fi"
+fi
+if [[ -n "$JSONLOG" ]] ; then
+  ssh -q -i "$REMOTE_PKEY" $REMOTE_SERVER "if [ -f $REMOTE_JSONLOG ] ; then rm $REMOTE_JSONLOG; fi"
+fi
 if [[ -n "$COVERAGE" ]] ; then
   ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "if [ -f $REMOTE_CLOVERLOG ] ; then rm $REMOTE_CLOVERLOG; fi"
 fi
@@ -87,6 +98,10 @@ fi
 
 if [[ -n "$JUNITLOG" ]] ; then
   COMMAND="${COMMAND} --log-junit ${REMOTE_JUNITLOG}"
+fi
+
+if [[ -n "$JSONLOG" ]] ; then
+  COMMAND="${COMMAND} --log-json ${REMOTE_JSONLOG}"
 fi
 
 if [[ -n "$BOOTSTRAP" ]] ; then
@@ -109,8 +124,15 @@ ssh -q -i $REMOTE_PKEY $REMOTE_SERVER "$COMMAND"
 
 # Copy the test output back to your local machine, where NetBeans expects to find it
 # might not work on mac. definitely won't work on win!
-scp -q -i $REMOTE_PKEY $REMOTE_SERVER:$REMOTE_JUNITLOG "$JUNITLOG.tmp"
-sed -e "s~$REMOTE_ROOT~$LOCAL_ROOT~g" "$JUNITLOG.tmp" > $JUNITLOG
+if [[ -n "$JUNITLOG" ]] ; then
+  scp -q -i "$REMOTE_PKEY" $REMOTE_SERVER:$REMOTE_JUNITLOG "$JUNITLOG.tmp"
+  sed -e "s~$REMOTE_ROOT~$LOCAL_ROOT~g" "$JUNITLOG.tmp" > $JUNITLOG
+fi
+
+if [[ -n "$JSONLOG" ]] ; then
+  scp -q -i "$REMOTE_PKEY" $REMOTE_SERVER:$REMOTE_JSONLOG "$JSONLOG.tmp"
+  sed -e "s~$REMOTE_ROOT~$LOCAL_ROOT~g" "$JSONLOG.tmp" > $JSONLOG
+fi
 
 if [[ -n "$COVERAGE" ]] ; then
   scp -q -i $REMOTE_PKEY $REMOTE_SERVER:"$REMOTE_CLOVERLOG" "$COVERAGE.tmp"
